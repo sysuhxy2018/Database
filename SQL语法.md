@@ -30,10 +30,6 @@
 >
 > https://www.cnblogs.com/zhaoyanghoo/p/5581710.html
 
-### 语法
-
-> 以下语句均在MySQL8.0下测试通过
-
 ### 创建/删除数据库
 
 ``` mysql
@@ -87,6 +83,8 @@ select * from mytable limit 1, 2; # 在所有满足条件的记录中返回第2 
 select * from mytable order by col1 desc, col2 asc; # 按col1降序排列，如果col1值相同，则按col2升序排列
 ```
 
+* 如果不指定顺序，则默认按升序。
+
 ### where
 
 ``` mysql
@@ -111,11 +109,72 @@ select concat("print: ", trim(col2)) as res from mytable;
 select length(left(col2, 2)) + 5 as res from mytable; # 函数可以嵌套，可以参与运算
 ```
 
-* as表示别名，多用于表示计算/运行函数生成的中间结果字段。
+* as表示别名，多用于表示计算/运行函数生成的中间结果字段。也可以给列名、表名取别名。
 
 ### group
 
+``` mysql
+select col1, count(*) as num from mytable group by col1 order by num;
+select col1, col2, count(*) as num from mytable group by col1, col2;
+select col1, count(*) as num from mytable group by col1 having mod(sum(id), 2) = 1;
+```
 
+* group by可以汇总相同数据的行到同一个组中，对每个分组可以应用聚合函数统计信息，如count, avg, sum等。group by分组的依据可以是多个字段，表示相同的col1, col2组合。
+* having相当于过滤group by产生的分组，也可以用聚合函数。
+* 执行顺序：where -> group by -> having -> order by -> limit。
+  * 除了汇总字段，select中的字段必须都出现在group by字段中。MySQL中，如果有一个不在，比如col3，那么就会取分组中某行的col3数据来代表整个分组的col3。
+  * where，having选择的字段和前面select和group by的字段都没关系，它们只是表示过滤。
+  * order by排序的字段一般从select字段里选择，表示对最终结果集的排序。
+
+### 子查询
+
+``` mysql
+select * from emp where dep_id in (select id from dept id);
+select * from emp where salary < any (select salary from emp where id in(2,5));
+select * from emp where salary < all (select salary from emp where id in(2,5));
+select * from emp where exists (select id from dept where dept.id = emp.dep_id);
+
+select cust_name, (select count(*) from Orders where Orders.cust_id = Customers.cust_id) as orders_num from Customers order by cust_name;
+
+select * from (select goods_id,cat_id,goods_name from goods order by cat_id asc,goods_id desc) as tmp group by cat_id;
+```
+
+子查询只返回一个字段的数据，即可以作为一列或者一个具体的数值。应用场景：
+
+* where，可以和in, any, all, exists等组合。
+  * in表示一个集合；如果是用 = 这样的比较运算符，= 另一边应该是一个具体的数值而不是集合。
+  * < any只要满足小于集合中任意一个值即可，即小于最大值
+  * < all要满足小于集合中所有值，即小于最小值
+  * exist相当于用for遍历每一行，用每一行的数据代入子查询检查结果，如果结果不为空，则保留该记录。
+* select，作为计算字段
+* from，相当于把子查询的结果集当成一张表（视图）
+
+### 连接
+
+``` mysql
+select * from emp as a inner join dept as b on a.dept_id = b.id;
+select * from emp a left join dept b on a.dept_id = b.id; 
+select * from emp a right join dept b on a.dept_id = b.id;
+
+select * from emp as a left join dept as b on a.dept_id = b.id
+union select * from emp as a right join dept as b on a.dept_id = b.id;
+```
+
+连接用于多表联合查询，可以替代子查询且效率更高，更简洁。
+
+种类：
+
+* 内连接，一个表和自身的内连接又叫自连接。
+* 外连接，有左外连接，右外连接，全外连接。
+  * 左外连接包含左表的全部记录（自然也包含自连接），对于不在左表中的右表字段，用null代替。右外连接同理。
+  * MySQL中没有全外连接的关键字，可以通过左外连接和右外连接union/union all实现；union会自动去重，union all保留重复记录。union也可以单独用于合并两个查询，但要求两个查询select出完全相同的字段。
+* 其他还有自然连接(natural join)和交叉连接(cross join)等。
+
+内外连接通常是基于等值的比较关系(=)，其实也可以是其他比较关系。可以把连接关键字看成是特殊的where过滤语句，实际上一些连接可以用where + 子查询代替。所有的连接都是基于cross join再筛选，也就是左表记录和右表记录的笛卡尔积，如果左表M条，右表N条，则cross join结果为M * N条。
+
+### 补充
+
+后续可以补充一些关于视图，trigger，函数和事务等方面的内容。
 
 
 
@@ -128,6 +187,20 @@ select length(left(col2, 2)) + 5 as res from mytable; # 函数可以嵌套，可
 > https://www.cnblogs.com/chywx/p/10154990.html
 >
 > https://www.cnblogs.com/luxd/p/9916677.html (常用函数表)
+>
+> https://www.cnblogs.com/niyl/p/9650183.html
+>
+> https://blog.csdn.net/sxlzs_/article/details/79396979
+>
+> https://blog.csdn.net/m0_38061639/article/details/82872705
+>
+> https://www.cnblogs.com/mryangbo/p/10904197.html
+>
+> https://www.jianshu.com/p/620eef505bd8
+>
+> https://www.cnblogs.com/xiaozhaoboke/p/11077781.html
+>
+> https://blog.csdn.net/zjt980452483/article/details/82945663
 
 
 
