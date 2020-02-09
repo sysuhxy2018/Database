@@ -129,7 +129,7 @@ select col1, count(*) as num from mytable group by col1 having mod(sum(id), 2) =
 ### 子查询
 
 ``` mysql
-select * from emp where dep_id in (select id from dept id);
+select * from emp where dep_id in (select id from dept);
 select * from emp where salary < any (select salary from emp where id in(2,5));
 select * from emp where salary < all (select salary from emp where id in(2,5));
 select * from emp where exists (select id from dept where dept.id = emp.dep_id);
@@ -170,7 +170,9 @@ union select * from emp as a right join dept as b on a.dept_id = b.id;
   * MySQL中没有全外连接的关键字，可以通过左外连接和右外连接union/union all实现；union会自动去重，union all保留重复记录。union也可以单独用于合并两个查询，但要求两个查询select出完全相同的字段。
 * 其他还有自然连接(natural join)和交叉连接(cross join)等。
 
-内外连接通常是基于等值的比较关系(=)，其实也可以是其他比较关系。可以把连接关键字看成是特殊的where过滤语句，实际上一些连接可以用where + 子查询代替。所有的连接都是基于cross join再筛选，也就是左表记录和右表记录的笛卡尔积，如果左表M条，右表N条，则cross join结果为M * N条。
+内外连接通常是基于等值的比较关系(=)，其实也可以是其他比较关系。所有的连接都是基于cross join再筛选，也就是左表记录和右表记录的笛卡尔积，如果左表M条，右表N条，则cross join结果为M * N条。join只是表示连接两个表，后面我们还是可以用where，group by，having等继续过滤、分组。
+
+实际上一些连接可以用where + 子查询代替。
 
 ### 补充
 
